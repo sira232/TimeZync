@@ -1,1 +1,1 @@
-# ist-meeting-to-calendar
+# TimeZync
