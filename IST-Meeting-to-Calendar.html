@@ -39,7 +39,87 @@
         border-radius: 10px;
         flex-shrink: 0;
     }
+    .header h1 { flex: 1; }
     h1 { font-size: 18px; margin: 0; color: #1f2937; }
+    .icon-btn {
+        width: 36px; height: 36px;
+        padding: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 17px;
+        border-radius: 10px;
+        border: 1.5px solid #e2e5eb;
+        background: #fafbfc;
+        color: #374151;
+        flex-shrink: 0;
+    }
+    .icon-btn:active { background: #f3f4f6; }
+    .settings-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(17, 24, 39, 0.45);
+        align-items: flex-start;
+        justify-content: center;
+        padding: 20px 14px;
+        overflow-y: auto;
+        z-index: 100;
+    }
+    .settings-panel {
+        max-width: 440px;
+        width: 100%;
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+    }
+    .settings-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .settings-header h2 { font-size: 16px; margin: 0; color: #1f2937; }
+    .settings-section { margin-top: 18px; }
+    .settings-section h3 {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        margin: 0 0 6px;
+    }
+    .settings-hint { font-size: 12px; color: #6b7280; margin: 0 0 10px; line-height: 1.4; }
+    .settings-list { list-style: none; margin: 0 0 10px; padding: 0; }
+    .settings-list li {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 13.5px;
+        color: #374151;
+        padding: 8px 10px;
+        background: #fafbfc;
+        border: 1px solid #e2e5eb;
+        border-radius: 8px;
+        margin-bottom: 6px;
+    }
+    .settings-list.readonly li { color: #6b7280; background: #f3f4f6; }
+    .settings-list .remove-btn {
+        background: none;
+        border: none;
+        color: #ef4444;
+        font-size: 13px;
+        padding: 2px 6px;
+        width: auto;
+        cursor: pointer;
+    }
+    .settings-add-row { display: flex; gap: 6px; align-items: stretch; }
+    .settings-add-row input, .settings-add-row select {
+        margin-bottom: 0;
+        font-size: 13.5px;
+        padding: 8px;
+    }
+    .settings-add-row input[type="text"] { flex: 1; min-width: 0; }
+    .settings-add-tz select, .settings-add-tz input[type="number"] { width: auto; }
+    .settings-add-row button {
+        width: auto;
+        padding: 8px 12px;
+        font-size: 13px;
+        background: linear-gradient(135deg, #4f8cff, #2563eb);
+    }
+    #btnCloseSettings { border: none; background: none; color: #6b7280; font-size: 18px; padding: 0; width: 30px; }
     p.sub {
         color: #6b7280;
         font-size: 13px;
@@ -132,27 +212,23 @@
     <div class="header">
         <div class="icon">📅</div>
         <h1>IST Meeting to Calendar</h1>
+        <button type="button" id="btnSettings" class="icon-btn" onclick="openSettings()" title="Settings">⚙️</button>
     </div>
-    <p class="sub">Enter the meeting exactly as given (India time). It converts to your phone's
-    local timezone and creates a ready-to-save calendar event.</p>
+    <p class="sub">Enter the meeting exactly as given in its own timezone. It converts to your
+    phone's local timezone and creates a ready-to-save calendar event. Tap ⚙️ to add more
+    titles or timezones.</p>
 
     <label for="titleSelect">Meeting title</label>
-    <select id="titleSelect" onchange="toggleCustomTitle()">
-        <option value="Gyananjali Gita/Bhagvat">Gyananjali Gita/Bhagvat</option>
-        <option value="Gyananjali Stotra">Gyananjali Stotra</option>
-        <option value="Gyananjali Karmkand">Gyananjali Karmkand</option>
-        <option value="Gyananjali Other">Gyananjali Other</option>
-        <option value="Jyotish Acharya">Jyotish Acharya</option>
-        <option value="Jyotish Bhushan">Jyotish Bhushan</option>
-        <option value="Nakshatra">Nakshatra</option>
-        <option value="Other">Other (type below)</option>
-    </select>
+    <select id="titleSelect" onchange="toggleCustomTitle()"></select>
     <input type="text" id="title" placeholder="Type custom meeting title" style="display:none;">
 
-    <label for="mDate">Date (IST)</label>
+    <label for="tzSelect">Meeting timezone</label>
+    <select id="tzSelect" onchange="onTzChange()"></select>
+
+    <label for="mDate">Meeting date</label>
     <input type="date" id="mDate">
 
-    <label>Time (IST)</label>
+    <label>Meeting time</label>
     <div class="time-row">
         <select id="mHour"></select>
         <select id="mMinute"></select>
@@ -179,35 +255,271 @@
     <a id="icsLink" class="gcal-link" rel="noopener">Download ICS</a>
 
     <p class="note">
-        IST is a fixed UTC+5:30 offset (no daylight saving), so the conversion is always exact
-        — including rolling the date backward/forward when needed. The local time shown comes
-        from your phone's own clock/timezone. For Outlook, open the downloaded <code>.ics</code>
-        file and add it (works with the Outlook app or your phone's default calendar).
-        Tap Reset to clear the form and start the next meeting. Twin of
-        <code>IST-Meeting-to-Calendar.hta</code> (Windows-only).
+        Each timezone above is a fixed offset (no daylight saving), so the conversion is always
+        exact — including rolling the date backward/forward when needed. The local time shown
+        comes from your phone's own clock/timezone automatically; you never need to set that
+        yourself. For Outlook, open the downloaded <code>.ics</code> file and add it (works with
+        the Outlook app or your phone's default calendar). Tap Reset to clear the form and start
+        the next meeting. Twin of <code>IST-Meeting-to-Calendar.hta</code> (Windows-only).
     </p>
 </div>
+
+<div id="settingsOverlay" class="settings-overlay">
+    <div class="settings-panel">
+        <div class="settings-header">
+            <h2>⚙️ Settings</h2>
+            <button type="button" id="btnCloseSettings" onclick="closeSettings()">✕</button>
+        </div>
+
+        <div class="settings-section">
+            <h3>Meeting titles</h3>
+            <p class="settings-hint">Built-in titles can't be removed. Add your own below — they'll
+            show up in the Meeting title dropdown.</p>
+            <ul id="builtinTitlesList" class="settings-list readonly"></ul>
+            <ul id="customTitlesList" class="settings-list"></ul>
+            <div class="settings-add-row">
+                <input type="text" id="newTitleInput" placeholder="New meeting title">
+                <button type="button" onclick="addCustomTitle()">Add</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>Timezones</h3>
+            <p class="settings-hint">Add any fixed-offset timezone a meeting invite might use
+            (same idea as IST — no daylight saving).</p>
+            <ul id="builtinTzList" class="settings-list readonly"></ul>
+            <ul id="customTzList" class="settings-list"></ul>
+            <div class="settings-add-row settings-add-tz">
+                <input type="text" id="newTzName" placeholder="Name e.g. Dubai">
+                <select id="newTzSign"><option value="+">+</option><option value="-">-</option></select>
+                <input type="number" id="newTzHours" placeholder="HH" min="0" max="14">
+                <select id="newTzMinutes">
+                    <option value="0">:00</option>
+                    <option value="15">:15</option>
+                    <option value="30">:30</option>
+                    <option value="45">:45</option>
+                </select>
+                <button type="button" onclick="addCustomTimezone()">Add</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>This device</h3>
+            <p class="settings-hint" id="deviceTzInfo"></p>
+        </div>
+    </div>
+</div>
+
 
 <script>
     function $(id) { return document.getElementById(id); }
     function pad(n) { return ('0' + n).slice(-2); }
+    function trim(s) { return (s || '').replace(/^\s+|\s+$/g, ''); }
+
+    var DEFAULT_TITLES = [
+        'Gyananjali Gita/Bhagvat', 'Gyananjali Stotra', 'Gyananjali Karmkand',
+        'Gyananjali Other', 'Jyotish Acharya', 'Jyotish Bhushan', 'Nakshatra'
+    ];
+    var DEFAULT_TIMEZONES = [
+        { id: 'ist', label: 'IST — India (fixed UTC+5:30, no DST)', offsetMinutes: 330 },
+        { id: 'utc', label: 'UTC (UTC+0:00)', offsetMinutes: 0 },
+        { id: 'us-eastern', label: 'US Eastern (fixed UTC-5:00, no DST)', offsetMinutes: -300 },
+        { id: 'us-central', label: 'US Central (fixed UTC-6:00, no DST)', offsetMinutes: -360 },
+        { id: 'us-mountain', label: 'US Mountain (fixed UTC-7:00, no DST)', offsetMinutes: -420 },
+        { id: 'us-pacific', label: 'US Pacific (fixed UTC-8:00, no DST)', offsetMinutes: -480 },
+        { id: 'gulf', label: 'Gulf Standard — Dubai (UTC+4:00)', offsetMinutes: 240 }
+    ];
+    var SETTINGS_KEY = 'istMeetingSettings.v1';
+
+    function defaultSettings() {
+        return { customTitles: [], customTimezones: [], selectedTimezoneId: 'ist' };
+    }
+
+    function loadSettings() {
+        try {
+            var raw = window.localStorage ? localStorage.getItem(SETTINGS_KEY) : null;
+            if (!raw) return defaultSettings();
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return defaultSettings();
+            if (!parsed.customTitles) parsed.customTitles = [];
+            if (!parsed.customTimezones) parsed.customTimezones = [];
+            if (!parsed.selectedTimezoneId) parsed.selectedTimezoneId = 'ist';
+            return parsed;
+        } catch (e) {
+            return defaultSettings();
+        }
+    }
+
+    function saveSettings() {
+        try {
+            if (window.localStorage) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+        } catch (e) { /* storage unavailable; settings won't persist this session */ }
+    }
+
+    var settings = loadSettings();
+
+    function allTimezones() { return DEFAULT_TIMEZONES.concat(settings.customTimezones); }
+
+    function findTimezone(id) {
+        var list = allTimezones();
+        for (var i = 0; i < list.length; i++) { if (list[i].id === id) return list[i]; }
+        return list[0];
+    }
+
+    function renderTitleSelect() {
+        var sel = $('titleSelect');
+        var currentVal = sel.value;
+        sel.innerHTML = '';
+        var i;
+        for (i = 0; i < DEFAULT_TITLES.length; i++) {
+            sel.options.add(new Option(DEFAULT_TITLES[i], DEFAULT_TITLES[i]));
+        }
+        for (i = 0; i < settings.customTitles.length; i++) {
+            sel.options.add(new Option(settings.customTitles[i], settings.customTitles[i]));
+        }
+        sel.options.add(new Option('Other (type below)', 'Other'));
+        var found = false;
+        for (i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === currentVal) { sel.selectedIndex = i; found = true; break; }
+        }
+        if (!found) { sel.selectedIndex = 0; }
+    }
+
+    function renderTzSelect() {
+        var sel = $('tzSelect');
+        sel.innerHTML = '';
+        var list = allTimezones();
+        for (var i = 0; i < list.length; i++) {
+            sel.options.add(new Option(list[i].label, list[i].id));
+        }
+        if (findTimezone(settings.selectedTimezoneId)) { sel.value = settings.selectedTimezoneId; }
+    }
+
+    function onTzChange() {
+        settings.selectedTimezoneId = $('tzSelect').value;
+        saveSettings();
+    }
+
+    function renderSettingsLists() {
+        var i, li, btn;
+
+        var builtinTitlesUl = $('builtinTitlesList');
+        builtinTitlesUl.innerHTML = '';
+        for (i = 0; i < DEFAULT_TITLES.length; i++) {
+            li = document.createElement('li');
+            li.innerText = DEFAULT_TITLES[i];
+            builtinTitlesUl.appendChild(li);
+        }
+
+        var customTitlesUl = $('customTitlesList');
+        customTitlesUl.innerHTML = '';
+        for (i = 0; i < settings.customTitles.length; i++) {
+            li = document.createElement('li');
+            li.innerText = settings.customTitles[i];
+            btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'remove-btn'; btn.innerText = '✕';
+            btn.setAttribute('data-idx', i);
+            btn.onclick = function () { removeCustomTitle(parseInt(this.getAttribute('data-idx'), 10)); };
+            li.appendChild(btn);
+            customTitlesUl.appendChild(li);
+        }
+
+        var builtinTzUl = $('builtinTzList');
+        builtinTzUl.innerHTML = '';
+        for (i = 0; i < DEFAULT_TIMEZONES.length; i++) {
+            li = document.createElement('li');
+            li.innerText = DEFAULT_TIMEZONES[i].label;
+            builtinTzUl.appendChild(li);
+        }
+
+        var customTzUl = $('customTzList');
+        customTzUl.innerHTML = '';
+        for (i = 0; i < settings.customTimezones.length; i++) {
+            li = document.createElement('li');
+            li.innerText = settings.customTimezones[i].label;
+            btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'remove-btn'; btn.innerText = '✕';
+            btn.setAttribute('data-idx', i);
+            btn.onclick = function () { removeCustomTimezone(parseInt(this.getAttribute('data-idx'), 10)); };
+            li.appendChild(btn);
+            customTzUl.appendChild(li);
+        }
+
+        var tzInfo = $('deviceTzInfo');
+        var offsetMin = -new Date().getTimezoneOffset();
+        var sign = offsetMin >= 0 ? '+' : '-';
+        var absMin = Math.abs(offsetMin);
+        var tzName = '';
+        try { tzName = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { /* not supported */ }
+        tzInfo.innerText = 'This device automatically converts every meeting to its own local time' +
+            (tzName ? ' (' + tzName + ')' : '') + ', currently UTC' + sign + pad(Math.floor(absMin / 60)) +
+            ':' + pad(absMin % 60) + '. Nothing to configure here.';
+    }
+
+    function openSettings() {
+        renderSettingsLists();
+        $('settingsOverlay').style.display = 'flex';
+    }
+
+    function closeSettings() {
+        $('settingsOverlay').style.display = 'none';
+        renderTitleSelect();
+        renderTzSelect();
+    }
+
+    function addCustomTitle() {
+        var input = $('newTitleInput');
+        var val = trim(input.value);
+        if (!val) return;
+        settings.customTitles.push(val);
+        saveSettings();
+        input.value = '';
+        renderSettingsLists();
+    }
+
+    function removeCustomTitle(idx) {
+        settings.customTitles.splice(idx, 1);
+        saveSettings();
+        renderSettingsLists();
+    }
+
+    function addCustomTimezone() {
+        var name = trim($('newTzName').value);
+        if (!name) { alert('Please enter a name for the timezone.'); return; }
+        var sign = $('newTzSign').value === '-' ? -1 : 1;
+        var hours = parseInt($('newTzHours').value, 10);
+        var minutes = parseInt($('newTzMinutes').value, 10);
+        if (isNaN(hours)) { hours = 0; }
+        if (isNaN(minutes)) { minutes = 0; }
+        var offsetMinutes = sign * (hours * 60 + minutes);
+        var label = name + ' (fixed UTC' + (offsetMinutes >= 0 ? '+' : '-') +
+            pad(Math.floor(Math.abs(offsetMinutes) / 60)) + ':' + pad(Math.abs(offsetMinutes) % 60) + ', no DST)';
+        settings.customTimezones.push({ id: 'custom-' + Date.now(), label: label, offsetMinutes: offsetMinutes });
+        saveSettings();
+        $('newTzName').value = '';
+        $('newTzHours').value = '';
+        renderSettingsLists();
+    }
+
+    function removeCustomTimezone(idx) {
+        var removedId = settings.customTimezones[idx].id;
+        settings.customTimezones.splice(idx, 1);
+        if (settings.selectedTimezoneId === removedId) { settings.selectedTimezoneId = 'ist'; }
+        saveSettings();
+        renderSettingsLists();
+    }
 
     // Build the hour/minute dropdown options once
     (function buildOptions() {
         var hourSelect = $('mHour');
         var minuteSelect = $('mMinute');
         var i;
-        for (i = 1; i <= 12; i++) {
-            var oh = document.createElement('option');
-            oh.value = i; oh.text = i;
-            hourSelect.appendChild(oh);
-        }
-        for (i = 0; i < 60; i += 5) {
-            var om = document.createElement('option');
-            om.value = i; om.text = pad(i);
-            minuteSelect.appendChild(om);
-        }
+        for (i = 1; i <= 12; i++) { hourSelect.options.add(new Option(i, i)); }
+        for (i = 0; i < 60; i += 5) { minuteSelect.options.add(new Option(pad(i), i)); }
     })();
+
+    renderTitleSelect();
+    renderTzSelect();
 
     // Show/hide the free-text title box when "Other" is selected
     function toggleCustomTitle() {
@@ -254,9 +566,10 @@
         var ampm = $('mAmPm').value;
         var durationMin = parseInt($('duration').value, 10);
         var detailsVal = $('details').value || '';
+        var tz = findTimezone($('tzSelect').value);
 
         if (!dateVal || isNaN(hour12)) {
-            status.innerText = 'Please enter date and time (IST).';
+            status.innerText = 'Please enter date and time.';
             status.className = 'status err show';
             return null;
         }
@@ -271,9 +584,9 @@
         var month = parseInt(dp[1], 10);
         var day = parseInt(dp[2], 10);
 
-        // IST is a fixed UTC+5:30 offset -> subtract it to get the true UTC instant
-        var IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
-        var startUtcMs = Date.UTC(year, month - 1, day, hour, minute) - IST_OFFSET_MS;
+        // The chosen timezone is a fixed offset -> subtract it to get the true UTC instant
+        var OFFSET_MS = tz.offsetMinutes * 60 * 1000;
+        var startUtcMs = Date.UTC(year, month - 1, day, hour, minute) - OFFSET_MS;
         var endUtcMs = startUtcMs + durationMin * 60 * 1000;
 
         var startLocal = new Date(startUtcMs);
@@ -290,6 +603,7 @@
             details: detailsVal,
             dateVal: dateVal,
             timeVal: timeVal,
+            tzLabel: tz.label,
             startLocal: startLocal,
             endLocal: endLocal,
             startUtcStr: fmtUtc(startUtcMs),
@@ -310,7 +624,7 @@
         var gcalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
             '&text=' + encodeURIComponent(ev.title) +
             '&dates=' + ev.startUtcStr + '/' + ev.endUtcStr +
-            '&details=' + encodeURIComponent(ev.details + '\n(Given as ' + ev.dateVal + ' ' + ev.timeVal + ' IST)');
+            '&details=' + encodeURIComponent(ev.details + '\n(Given as ' + ev.dateVal + ' ' + ev.timeVal + ' ' + ev.tzLabel + ')');
 
         var link = $('gcalLink');
         link.href = gcalUrl;
@@ -332,7 +646,7 @@
                 'T' + pad(dd.getUTCHours()) + pad(dd.getUTCMinutes()) + pad(dd.getUTCSeconds()) + 'Z';
         })();
 
-        var icsBody = (ev.details + '\n(Given as ' + ev.dateVal + ' ' + ev.timeVal + ' IST)')
+        var icsBody = (ev.details + '\n(Given as ' + ev.dateVal + ' ' + ev.timeVal + ' ' + ev.tzLabel + ')')
             .replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
 
         var ics = [
