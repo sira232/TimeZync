@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IST Meeting to Calendar</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="IST2Cal">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: linear-gradient(160deg, #eef2ff 0%, #f4f6f8 45%);
+        margin: 0;
+        padding: 20px 14px 40px;
+        min-height: 100vh;
+    }
+    .card {
+        max-width: 440px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 6px 24px rgba(20, 30, 60, 0.08);
+        padding: 22px 20px 26px;
+    }
+    .header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .header .icon {
+        font-size: 26px;
+        line-height: 1;
+        width: 40px; height: 40px;
+        display: flex; align-items: center; justify-content: center;
+        background: #eef2ff;
+        border-radius: 10px;
+        flex-shrink: 0;
+    }
+    h1 { font-size: 18px; margin: 0; color: #1f2937; }
+    p.sub {
+        color: #6b7280;
+        font-size: 13px;
+        margin: 8px 0 20px;
+        line-height: 1.5;
+    }
+    label {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+    }
+    input[type="date"], input[type="text"], input[type="number"], select {
+        width: 100%;
+        padding: 11px 12px;
+        font-size: 16px;
+        border: 1.5px solid #e2e5eb;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        box-sizing: border-box;
+        font-family: inherit;
+        background: #fafbfc;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        background: #fff;
+    }
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; min-width: 0; }
+    .time-row { display: flex; gap: 6px; margin-bottom: 16px; }
+    .time-row select { margin-bottom: 0; }
+    .buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 4px;
+    }
+    button {
+        padding: 13px;
+        font-size: 14.5px;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: transform .1s, opacity .15s, box-shadow .15s;
+    }
+    button:active { transform: scale(0.98); opacity: 0.92; }
+    #btnGoogle { background: linear-gradient(135deg, #4f8cff, #2563eb); }
+    #btnOutlook { background: linear-gradient(135deg, #2fa3e0, #0f6cbd); }
+    #btnReset {
+        background: #fff;
+        color: #6b7280;
+        border: 1.5px solid #e2e5eb;
+        margin-top: 4px;
+    }
+    #btnReset:active { background: #f3f4f6; }
+    .status {
+        margin-top: 16px;
+        font-size: 13px;
+        padding: 11px 12px;
+        border-radius: 10px;
+        display: none;
+        line-height: 1.5;
+    }
+    .status.show { display: block; }
+    .status.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .status.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .note {
+        margin-top: 18px;
+        font-size: 11.5px;
+        color: #9ca3af;
+        line-height: 1.5;
+    }
+    a.gcal-link { display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <div class="icon">📅</div>
+        <h1>IST Meeting to Calendar</h1>
+    </div>
+    <p class="sub">Enter the meeting exactly as given (India time). It converts to your phone's
+    local timezone and creates a ready-to-save calendar event.</p>
+
+    <label for="titleSelect">Meeting title</label>
+    <select id="titleSelect" onchange="toggleCustomTitle()">
+        <option value="Gyananjali Gita/Bhagvat">Gyananjali Gita/Bhagvat</option>
+        <option value="Gyananjali Stotra">Gyananjali Stotra</option>
+        <option value="Gyananjali Karmkand">Gyananjali Karmkand</option>
+        <option value="Gyananjali Other">Gyananjali Other</option>
+        <option value="Jyotish Acharya">Jyotish Acharya</option>
+        <option value="Jyotish Bhushan">Jyotish Bhushan</option>
+        <option value="Nakshatra">Nakshatra</option>
+        <option value="Other">Other (type below)</option>
+    </select>
+    <input type="text" id="title" placeholder="Type custom meeting title" style="display:none;">
+
+    <label for="mDate">Date (IST)</label>
+    <input type="date" id="mDate">
+
+    <label>Time (IST)</label>
+    <div class="time-row">
+        <select id="mHour"></select>
+        <select id="mMinute"></select>
+        <select id="mAmPm">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+        </select>
+    </div>
+
+    <label for="duration">Duration (minutes)</label>
+    <input type="number" id="duration" value="60" min="5" step="5">
+
+    <label for="details">Notes / link (optional)</label>
+    <input type="text" id="details" placeholder="Teams link, agenda, etc.">
+
+    <div class="buttons">
+        <button id="btnGoogle" onclick="addToGoogle()">📆 Add to Google Calendar</button>
+        <button id="btnOutlook" onclick="addToOutlook()">📧 Add to Outlook (.ics)</button>
+        <button id="btnReset" onclick="resetForm()">🔄 Reset</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <a id="gcalLink" class="gcal-link" target="_blank" rel="noopener">Open Google Calendar</a>
+    <a id="icsLink" class="gcal-link" rel="noopener">Download ICS</a>
+
+    <p class="note">
+        IST is a fixed UTC+5:30 offset (no daylight saving), so the conversion is always exact
+        — including rolling the date backward/forward when needed. The local time shown comes
+        from your phone's own clock/timezone. For Outlook, open the downloaded <code>.ics</code>
+        file and add it (works with the Outlook app or your phone's default calendar).
+        Tap Reset to clear the form and start the next meeting. Twin of
+        <code>IST-Meeting-to-Calendar.hta</code> (Windows-only).
+    </p>
+</div>
+
+<script>
+    function $(id) { return document.getElementById(id); }
+    function pad(n) { return ('0' + n).slice(-2); }
+
+    // Build the hour/minute dropdown options once
+    (function buildOptions() {
+        var hourSelect = $('mHour');
+        var minuteSelect = $('mMinute');
+        var i;
+        for (i = 1; i <= 12; i++) {
+            var oh = document.createElement('option');
+            oh.value = i; oh.text = i;
+            hourSelect.appendChild(oh);
+        }
+        for (i = 0; i < 60; i += 5) {
+            var om = document.createElement('option');
+            om.value = i; om.text = pad(i);
+            minuteSelect.appendChild(om);
+        }
+    })();
+
+    // Show/hide the free-text title box when "Other" is selected
+    function toggleCustomTitle() {
+        var isOther = $('titleSelect').value === 'Other';
+        $('title').style.display = isOther ? 'block' : 'none';
+        if (isOther) { $('title').focus(); }
+    }
+
+    // Fill the form with today's date, current time, and blank fields
+    function setDefaultsToNow() {
+        var d = new Date();
+        $('mDate').value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+        var h24 = d.getHours();
+        var ampm = h24 >= 12 ? 'PM' : 'AM';
+        var h12 = h24 % 12; if (h12 === 0) h12 = 12;
+        $('mHour').value = h12;
+        $('mMinute').value = Math.floor(d.getMinutes() / 5) * 5;
+        $('mAmPm').value = ampm;
+    }
+
+    function resetForm() {
+        $('titleSelect').selectedIndex = 0;
+        $('title').value = '';
+        toggleCustomTitle();
+        $('details').value = '';
+        $('duration').value = 60;
+        setDefaultsToNow();
+
+        var status = $('status');
+        status.className = 'status';
+        status.innerText = '';
+    }
+
+    setDefaultsToNow();
+
+    function computeEvent() {
+        var status = $('status');
+        var titleSelectVal = $('titleSelect').value;
+        var titleVal = titleSelectVal === 'Other' ? ($('title').value || 'Meeting') : titleSelectVal;
+        var dateVal = $('mDate').value;
+        var hour12 = parseInt($('mHour').value, 10);
+        var minute = parseInt($('mMinute').value, 10);
+        var ampm = $('mAmPm').value;
+        var durationMin = parseInt($('duration').value, 10);
+        var detailsVal = $('details').value || '';
+
+        if (!dateVal || isNaN(hour12)) {
+            status.innerText = 'Please enter date and time (IST).';
+            status.className = 'status err show';
+            return null;
+        }
+        if (isNaN(durationMin) || durationMin <= 0) { durationMin = 60; }
+
+        var hour = hour12 % 12;
+        if (ampm === 'PM') { hour += 12; }
+        var timeVal = hour12 + ':' + pad(minute) + ' ' + ampm;
+
+        var dp = dateVal.split('-');
+        var year = parseInt(dp[0], 10);
+        var month = parseInt(dp[1], 10);
+        var day = parseInt(dp[2], 10);
+
+        // IST is a fixed UTC+5:30 offset -> subtract it to get the true UTC instant
+        var IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+        var startUtcMs = Date.UTC(year, month - 1, day, hour, minute) - IST_OFFSET_MS;
+        var endUtcMs = startUtcMs + durationMin * 60 * 1000;
+
+        var startLocal = new Date(startUtcMs);
+        var endLocal = new Date(endUtcMs);
+
+        function fmtUtc(ms) {
+            var dd = new Date(ms);
+            return dd.getUTCFullYear() + pad(dd.getUTCMonth() + 1) + pad(dd.getUTCDate()) +
+                'T' + pad(dd.getUTCHours()) + pad(dd.getUTCMinutes()) + '00Z';
+        }
+
+        return {
+            title: titleVal,
+            details: detailsVal,
+            dateVal: dateVal,
+            timeVal: timeVal,
+            startLocal: startLocal,
+            endLocal: endLocal,
+            startUtcStr: fmtUtc(startUtcMs),
+            endUtcStr: fmtUtc(endUtcMs)
+        };
+    }
+
+    function showStatus(msg) {
+        var status = $('status');
+        status.innerText = msg;
+        status.className = 'status ok show';
+    }
+
+    function addToGoogle() {
+        var ev = computeEvent();
+        if (!ev) return;
+
+        var gcalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+            '&text=' + encodeURIComponent(ev.title) +
+            '&dates=' + ev.startUtcStr + '/' + ev.endUtcStr +
+            '&details=' + encodeURIComponent(ev.details + '\n(Given as ' + ev.dateVal + ' ' + ev.timeVal + ' IST)');
+
+        var link = $('gcalLink');
+        link.href = gcalUrl;
+        link.click();
+
+        showStatus('Opening Google Calendar for "' + ev.title + '" — ' +
+            ev.startLocal.toLocaleDateString() + ' ' + ev.startLocal.toLocaleTimeString() + ' to ' +
+            ev.endLocal.toLocaleTimeString() + ' (your phone\'s local time). Tap Save to confirm.');
+    }
+
+    function addToOutlook() {
+        var ev = computeEvent();
+        if (!ev) return;
+
+        var uid = 'ist-meeting-' + Date.now() + '@auto-bat';
+        var nowStamp = (function () {
+            var dd = new Date();
+            return dd.getUTCFullYear() + pad(dd.getUTCMonth() + 1) + pad(dd.getUTCDate()) +
+                'T' + pad(dd.getUTCHours()) + pad(dd.getUTCMinutes()) + pad(dd.getUTCSeconds()) + 'Z';
+        })();
+
+        var icsBody = (ev.details + '\n(Given as ' + ev.dateVal + ' ' + ev.timeVal + ' IST)')
+            .replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+
+        var ics = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//AUTO BAT//IST Meeting to Calendar//EN',
+            'BEGIN:VEVENT',
+            'UID:' + uid,
+            'DTSTAMP:' + nowStamp,
+            'DTSTART:' + ev.startUtcStr,
+            'DTEND:' + ev.endUtcStr,
+            'SUMMARY:' + ev.title.replace(/,/g, '\\,').replace(/;/g, '\\;'),
+            'DESCRIPTION:' + icsBody,
+            'END:VEVENT',
+            'END:VCALENDAR'
+        ].join('\r\n');
+
+        var blob = new Blob([ics], { type: 'text/calendar' });
+        var url = URL.createObjectURL(blob);
+        var link = $('icsLink');
+        link.href = url;
+        link.download = ev.title.replace(/[^a-z0-9\-_ ]/gi, '') + '.ics';
+        link.click();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+
+        showStatus('Downloaded .ics for "' + ev.title + '" — ' +
+            ev.startLocal.toLocaleDateString() + ' ' + ev.startLocal.toLocaleTimeString() + ' to ' +
+            ev.endLocal.toLocaleTimeString() + ' (your phone\'s local time). Open the file and choose ' +
+            'Outlook (or your calendar app) to add it.');
+    }
+
+    // Register the service worker so this page can be installed as a
+    // standalone PWA (Android "Add to Home Screen" / Chrome install prompt).
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('service-worker.js').catch(function () {});
+        });
+    }
+</script>
+</body>
+</html>
