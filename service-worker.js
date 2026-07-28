@@ -1,6 +1,6 @@
 // Minimal service worker so the app installs as a standalone PWA and keeps
 // working offline once it has been opened at least once.
-const CACHE_NAME = 'ist-meeting-to-calendar-v2';
+const CACHE_NAME = 'ist-meeting-to-calendar-v3';
 const ASSETS = [
     './IST-Meeting-to-Calendar.html',
     './manifest.json',

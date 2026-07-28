@@ -1,7 +1,7 @@
 {
-  "name": "IST Meeting to Calendar",
-  "short_name": "IST2Cal",
-  "description": "Convert IST meeting invites to your phone's local time and add them to Google Calendar or Outlook/ICS.",
+  "name": "TimeZync",
+  "short_name": "TimeZync",
+  "description": "Convert meeting invites given in any timezone to your phone's local time and add them to Google Calendar or Outlook/ICS.",
   "start_url": "./IST-Meeting-to-Calendar.html",
   "scope": "./",
   "display": "standalone",
